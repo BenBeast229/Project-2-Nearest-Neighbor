@@ -2,12 +2,18 @@ import numpy as np
 import time
 
 # Cross-validation to test the accuracy of the algorithm
-def leave_one_out_cross_validation(data, current_set, feature_to_add): 
+def leave_one_out_cross_validation(data, current_set, feature, mode='add'): 
     number_correctly_classified = 0
     
-    # Combine current set of features with the feature to add
-    features_to_use = current_set + [feature_to_add]
-    
+    # checks if feature is being added or removed
+    if mode == 'add':
+        features_to_use = current_set + [feature]
+    elif mode == 'remove':
+        features_to_use = current_set.copy()
+        
+        if feature in features_to_use:
+            features_to_use.remove(feature)
+            
     # Iterate through each row in the dataset
     for i in range(data.shape[0]):
         object_to_classify = data[i, features_to_use]  # Object to classify (selected features)
@@ -36,13 +42,12 @@ def leave_one_out_cross_validation(data, current_set, feature_to_add):
 # Starts with an empty set of features and adds one feature at a time
 def forward_selection(data): 
     current_set_of_features = []  # Empty set of features
-    best_overall_accuracy = 0
-    best_feature_subset = []
+    best_overall_accuracy = leave_one_out_cross_validation(data, current_set_of_features, 1) # Initialize best overall accuracy to output at the end
+    best_feature_subset = [] # Initialize best feature subset to output at the end
     
     print(f"This dataset has {data.shape[1] - 1} features (not including the class attribute), with {data.shape[0]} instances.\n")
     
-    full_feature_accuracy = leave_one_out_cross_validation(data, current_set_of_features, 1)
-    print(f"Running nearest neighbor with all {data.shape[1] - 1} features, using “leaving-one-out” evaluation, I get an accuracy of {full_feature_accuracy:.1f}%\n")
+    print(f"Running nearest neighbor with all {data.shape[1] - 1} features, using “leaving-one-out” evaluation, I get an accuracy of {best_overall_accuracy:.1f}%\n")
     print("Beginning search.\n")
     
     # Iterate through each level of the search tree
@@ -68,23 +73,24 @@ def forward_selection(data):
             if best_so_far_accuracy > best_overall_accuracy:
                 best_overall_accuracy = best_so_far_accuracy
                 best_feature_subset = current_set_of_features.copy()
+            else:
+                print("(Warning, Accuracy has decreased! Continuing search in case of local maxima)\n")
         
     print(f"Finished search! The best feature subset is {best_feature_subset}, which has an accuracy of {best_overall_accuracy:.1f}%")
         
 # Starts with all features and removes one feature at a time
 def backward_elimination(data): 
     current_set_of_features = list(range(1, data.shape[1]))  # Full set of features
-    best_feature_subset = current_set_of_features.copy()
-    best_overall_accuracy = 0
+    best_feature_subset = []
+    best_overall_accuracy = leave_one_out_cross_validation(data, best_feature_subset, 1)
     
     print(f"This dataset has {data.shape[1] - 1} features (not including the class attribute), with {data.shape[0]} instances.\n")
     
-    full_feature_accuracy = leave_one_out_cross_validation(data, current_set_of_features, 1)
-    print(f"Running nearest neighbor with all {data.shape[1] - 1} features, using “leaving-one-out” evaluation, I get an accuracy of {full_feature_accuracy:.1f}%\n")
+    print(f"Running nearest neighbor with all {data.shape[1] - 1} features, using “leaving-one-out” evaluation, I get an accuracy of {best_overall_accuracy:.1f}%\n")
     print("Beginning search.\n")
     
     # Iterate through each level of the search tree
-    for i in range(1, data.shape[1]):
+    while len(current_set_of_features) > 1:
         feature_to_remove_at_this_level = None
         best_so_far_accuracy = 0
         
@@ -95,7 +101,7 @@ def backward_elimination(data):
                 current_set_of_features_copy = current_set_of_features.copy()
                 current_set_of_features_copy.remove(j)
                 
-                accuracy = leave_one_out_cross_validation(data, current_set_of_features_copy, 0)
+                accuracy = leave_one_out_cross_validation(data, current_set_of_features_copy, j, mode='remove')
                 print(f"    Using feature(s) {current_set_of_features_copy} accuracy is {accuracy:.1f}%")
                 
                 # Check if accuracy is better than the best so far
@@ -109,7 +115,9 @@ def backward_elimination(data):
             
             if best_so_far_accuracy > best_overall_accuracy:
                 best_overall_accuracy = best_so_far_accuracy
-                best_feature_subset = current_set_of_features
+                best_feature_subset = current_set_of_features.copy()
+            else:
+                print("(Warning, Accuracy has decreased! Continuing search in case of local maxima)\n")
         
     print(f"Finished search! The best feature subset is {best_feature_subset}, which has an accuracy of {best_overall_accuracy:.1f}%")
 
