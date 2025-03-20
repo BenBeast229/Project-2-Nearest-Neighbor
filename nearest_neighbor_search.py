@@ -36,6 +36,8 @@ def leave_one_out_cross_validation(data, current_set, feature_to_add):
 # Starts with an empty set of features and adds one feature at a time
 def forward_selection(data): 
     current_set_of_features = []  # Empty set of features
+    best_overall_accuracy = 0
+    best_feature_subset = []
     
     print(f"This dataset has {data.shape[1] - 1} features (not including the class attribute), with {data.shape[0]} instances.\n")
     
@@ -58,15 +60,22 @@ def forward_selection(data):
                 if accuracy > best_so_far_accuracy:
                     best_so_far_accuracy = accuracy
                     feature_to_add_at_this_level = j
+                    
+        if feature_to_add_at_this_level is not None:
+            current_set_of_features.append(feature_to_add_at_this_level)  # Add the best feature to the current set
+            print(f"\nFeature set {current_set_of_features} was best, accuracy is {best_so_far_accuracy:.1f}%\n")
+            
+            if best_so_far_accuracy > best_overall_accuracy:
+                best_overall_accuracy = best_so_far_accuracy
+                best_feature_subset = current_set_of_features.copy()
         
-        current_set_of_features.append(feature_to_add_at_this_level)  # Add the best feature to the current set
-        print(f"\nFeature set {current_set_of_features} was best, accuracy is {best_so_far_accuracy:.1f}%\n")
-        
-    print(f"Finished search! The best feature subset is {current_set_of_features}, which has an accuracy of {best_so_far_accuracy:.1f}%")
+    print(f"Finished search! The best feature subset is {best_feature_subset}, which has an accuracy of {best_overall_accuracy:.1f}%")
         
 # Starts with all features and removes one feature at a time
 def backward_elimination(data): 
     current_set_of_features = list(range(1, data.shape[1]))  # Full set of features
+    best_feature_subset = current_set_of_features.copy()
+    best_overall_accuracy = 0
     
     print(f"This dataset has {data.shape[1] - 1} features (not including the class attribute), with {data.shape[0]} instances.\n")
     
@@ -82,18 +91,27 @@ def backward_elimination(data):
         # Iterate through each feature
         for j in range(1, data.shape[1]):
             if j in current_set_of_features:
-                accuracy = leave_one_out_cross_validation(data, current_set_of_features, j)
-                print(f"    Using feature(s) {current_set_of_features} accuracy is {accuracy:.1f}%")
+                # Create a copy of the current set of features and remove the feature to test
+                current_set_of_features_copy = current_set_of_features.copy()
+                current_set_of_features_copy.remove(j)
+                
+                accuracy = leave_one_out_cross_validation(data, current_set_of_features_copy, 0)
+                print(f"    Using feature(s) {current_set_of_features_copy} accuracy is {accuracy:.1f}%")
                 
                 # Check if accuracy is better than the best so far
                 if accuracy > best_so_far_accuracy:
                     best_so_far_accuracy = accuracy
                     feature_to_remove_at_this_level = j
         
-        current_set_of_features.remove(feature_to_remove_at_this_level)  # Remove the best feature from the current set
-        print(f"\nFeature set {current_set_of_features} was best, accuracy is {best_so_far_accuracy:.1f}%\n")
+        if feature_to_remove_at_this_level is not None:
+            current_set_of_features.remove(feature_to_remove_at_this_level)  # Remove the best feature from the current set
+            print(f"\nFeature set {current_set_of_features} was best, accuracy is {best_so_far_accuracy:.1f}%\n")
+            
+            if best_so_far_accuracy > best_overall_accuracy:
+                best_overall_accuracy = best_so_far_accuracy
+                best_feature_subset = current_set_of_features
         
-    print(f"Finished search! The best feature subset is {current_set_of_features}, which has an accuracy of {best_so_far_accuracy:.1f}%")
+    print(f"Finished search! The best feature subset is {best_feature_subset}, which has an accuracy of {best_overall_accuracy:.1f}%")
 
 # Main function to run the feature selection algorithm and allow user to choose options.
 def main():
@@ -102,26 +120,26 @@ def main():
     print("1. Small Dataset")  # loads small dataset
     print("2. Large Dataset")  # loads large dataset
     
-    choice = input("Choose 1 for small dataset or 2 for large dataset: ")  # user input
+    choice = input("\nChoose 1 for small dataset or 2 for large dataset: ")  # user input
     
     while choice != '1' and choice != '2':  # checks if user input is valid
         print("Invalid choice. Please select a valid option.")
-        choice = input("Choose 1 for small dataset or 2 for large dataset: ")  # ask again if invalid
+        choice = input("\nChoose 1 for small dataset or 2 for large dataset: ")  # ask again if invalid
     
     if choice == '1':
         data = np.loadtxt('CS170_Small_Data__51.txt')  # loads small dataset
     elif choice == '2':
         data = np.loadtxt('CS170_Large_Data__109.txt')  # loads large dataset
     
-    print("Choose an algorithm to use:")
+    print("\nChoose an algorithm to use:")
     print("1. Forward Selection")
     print("2. Backward Elimination")
     
-    choice = input("Choose 1 for Forward Selection or 2 for Backward Elimination: ")
+    choice = input("\nChoose 1 for Forward Selection or 2 for Backward Elimination: ")
     
     while choice != '1' and choice != '2':  # checks for algorithm selection
         print("Invalid choice. Please select a valid option.")
-        choice = input("Choose 1 for Forward Selection or 2 for Backward Elimination: ")  # ask again if invalid
+        choice = input("\nChoose 1 for Forward Selection or 2 for Backward Elimination: ")  # ask again if invalid
     
     start_time = time.time()  # Start timer
     
